@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Urlaubsfoto raten (OpenStreetMap)</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 800px;
+      margin: 20px auto;
+    }
+    #map {
+      height: 500px;
+      width: 100%;
+      margin-top: 10px;
+    }
+    button {
+      margin-top: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+    #result {
+      font-weight: bold;
+      margin-top: 10px;
+    }
+  </style>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+</head>
+<body>
+
+  <h2>Where did Fabio spot this post-apocalyptic scenery?</h2>
+  <img src="https://www.overlandtour.de/wp-content/uploads/2023/05/Radio-Optical-Observatory-ROT-54-22.jpg" width="100%" alt="Urlaubsfoto">
+  
+  <p>Click on the map to set a marker for your guess. You can change it as often as you like, as long as you haven't submitted yet.</p>
+
+  <div id="map"></div>
+  <button id="submitGuess" disabled>submit guess</button>
+  <p id="result"></p>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <script>
+    const actualLocation = [40.3521, 44.2395]; // Radio Optical Observatory ROT-54
+    let guessedMarker = null;
+    let guessLatLng = null;
+
+    let map = L.map('map').setView([20, 0], 2);
+
+    // OSM Layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap-Mitwirkende'
+    }).addTo(map);
+
+    // Klick auf Karte
+    map.on('click', function(e) {
+      guessLatLng = e.latlng;
+
+      // Vorherigen Marker entfernen
+      if (guessedMarker) {
+        map.removeLayer(guessedMarker);
+      }
+
+      // Neuen Tipp-Marker setzen
+      guessedMarker = L.marker(guessLatLng).addTo(map)
+        .bindPopup("your guess").openPopup();
+
+      // Button aktivieren
+      document.getElementById("submitGuess").disabled = false;
+    });
+
+    // Grünes Icon für echten Ort
+    const greenIcon = new L.Icon({
+      iconUrl: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png',
+      iconSize: [32, 32],
+      iconAnchor: [16, 32],
+      popupAnchor: [0, -32]
+    });
+
+    // Tipp bestätigen
+    document.getElementById("submitGuess").addEventListener("click", function() {
+      if (!guessLatLng) return;
+
+      // Marker für tatsächlichen Ort
+      L.marker(actualLocation, {icon: greenIcon}).addTo(map)
+        .bindPopup("Abandoned Radio Optical Observatory ROT-54 in Armenia").openPopup();
+
+      // Entfernung berechnen
+      const distance = haversineDistance(
+        [guessLatLng.lat, guessLatLng.lng],
+        actualLocation
+      );
+
+      document.getElementById("result").innerText =
+        `You were off by ${distance.toFixed(2)} km`;
+
+      // Button deaktivieren, um Mehrfach-Bestätigung zu verhindern
+      this.disabled = true;
+    });
+
+    // Haversine-Distanz
+    function haversineDistance(coords1, coords2) {
+      function toRad(x) { return x * Math.PI / 180; }
+
+      const R = 6371; // km
+      const dLat = toRad(coords2[0] - coords1[0]);
+      const dLon = toRad(coords2[1] - coords1[1]);
+      const lat1 = toRad(coords1[0]);
+      const lat2 = toRad(coords2[0]);
+
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.sin(dLon/2) * Math.sin(dLon/2) * Math.cos(lat1) * Math.cos(lat2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+  </script>
+
+</body>
+</html>
